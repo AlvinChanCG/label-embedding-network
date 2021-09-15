@@ -7,7 +7,7 @@ import os
 import sys
 import time
 import math
-
+import torch
 import torch.nn as nn
 import torch.nn.init as init
 
@@ -42,7 +42,8 @@ def init_params(net):
                 init.constant(m.bias, 0)
 
 
-_, term_width = os.popen('stty size', 'r').read().split()
+# _, term_width = os.popen('stty size', 'r').read().split()
+term_width = 80               # 这里我直接把上面那句注释掉，直接设80缩进
 term_width = int(term_width)
 
 TOTAL_BAR_LENGTH = 65.
