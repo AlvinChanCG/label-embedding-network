@@ -90,6 +90,7 @@ def comp_Loss(epoch, out1, out2, tar, emb_w, targets, mode):
     out2_prob = F.softmax(out2)
     tau2_prob = F.softmax(out2 / args.tau).detach()
     soft_tar = F.softmax(tar).detach()# + 0.5*F.softmax(tar1).detach()
+    # print("targets: ", targets)
     L_o1_y = F.cross_entropy(out1, targets)
     if mode == 'baseline':
         return L_o1_y
@@ -102,8 +103,8 @@ def comp_Loss(epoch, out1, out2, tar, emb_w, targets, mode):
 
     L_o2_y = F.cross_entropy(out2, targets)
     L_emb_o2 = -torch.sum(my_loss(tar, tau2_prob)*mask)/(torch.sum(mask)+1e-8)
-    gap = torch.gather(out2_prob, 1, targets.view(-1,1))-alpha
-    L_re = torch.sum(F.relu(gap))
+    gap = torch.gather(out2_prob, 1, targets.view(-1,1))-alpha       # 这样看来，targets应该是用的硬编码咯？
+    L_re = torch.sum(F.relu(gap))             # 这里的实现好像并没有使用绝对值啊？？
     #L2_loss = F.mse_loss(emb_w.t(), emb_w.detach())
     
     loss = beta*L_o1_y + (1-beta)*L_o1_emb +L_o2_y +L_emb_o2 +L_re
@@ -126,8 +127,12 @@ def train(epoch):
             inputs, targets = inputs.cuda(), targets.cuda()
         optimizer.zero_grad()
         inputs, targets = Variable(inputs), Variable(targets, requires_grad = False)
-        outputs = net(inputs, targets, epoch, batch_idx)
+        outputs = net(inputs, targets, epoch, batch_idx)      # 其实传入batch_idx没啥用
         out1, out2, tar, emb_w = outputs
+        # print("out1: ", out1)
+        # print("out2: ", out2)
+        # print("tar: ", tar)
+        # print("emb_w: ", emb_w)
 
         loss = comp_Loss(epoch, out1, out2, tar, emb_w, targets, args.mode)
         loss.backward()
@@ -156,6 +161,7 @@ def test(epoch):
         if use_cuda:
             inputs, targets = inputs.cuda(), targets.cuda()
         inputs, targets = Variable(inputs, volatile=True), Variable(targets)
+        # TODO: 注意：train时需要target，而这里的test虽然也传入了target，但是网络内部其实不需要，可以在网络内部设置一个判断train和test的flag，来设target为None
         out, _, _,_ = net(inputs, targets, -1,batch_idx)
         loss = F.cross_entropy(out, targets)
 
